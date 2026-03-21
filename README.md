@@ -11,7 +11,7 @@ It runs:
 
 Paper Findings view:
 
-![Paper Findings Demo](docs/images/paper-findings-demo.png)
+![Paper Findings Demo](docs/images/paper-findings-demo.svg)
 
 ## What This Project Does
 
