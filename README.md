@@ -7,6 +7,12 @@ It runs:
 - an inspector model that flags suspicious behavior,
 - a simulation layer that produces run traces, metrics, and paper-style findings.
 
+## Demo
+
+Paper Findings view:
+
+![Paper Findings Demo](docs/images/paper-findings-demo.png)
+
 ## What This Project Does
 
 - Generates realistic benign and adversarial frontend samples.
