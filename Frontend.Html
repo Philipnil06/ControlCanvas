@@ -1,0 +1,308 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ControlCanvas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="app">
+    <section class="hero">
+      <span class="tag">Control Protocol Demo</span>
+      <h1>ControlCanvas</h1>
+      <p>A trusted monitor inspects and rewrites unsafe AI-generated frontend code before execution.</p>
+    </section>
+    <section class="frame">
+      <div class="grid">
+        <article class="panel panel-fixed">
+          <div class="head"><h2>Untrusted Builder Output</h2><span id="builderState" class="state t-neutral">Idle</span></div>
+          <div class="code-wrap"><pre id="codeView" class="code" aria-live="polite"></pre></div>
+        </article>
+        <article class="panel">
+          <div class="head"><h2>Safe Execution Preview</h2><span id="previewState" class="state t-warn">Awaiting Inspection</span></div>
+          <div class="preview-wrap">
+            <div id="previewBox" class="preview">
+              <iframe id="previewFrame" sandbox="allow-scripts"></iframe>
+              <div id="lockOverlay" class="lock show">Execution locked until inspection</div>
+              <div id="okLabel" class="ok-label">Safe execution approved</div>
+            </div>
+          </div>
+        </article>
+        <aside class="panel panel-fixed">
+          <div class="head"><h2>Trusted Safety Inspector</h2><span id="inspectorState" class="state t-neutral">Idle</span></div>
+          <div class="inspector">
+            <div id="inspectorLog" class="log" aria-live="polite"></div>
+            <section id="summary" class="summary">
+              <div class="sum-grid">
+                <dl><dt>Risk before</dt><dd id="riskBefore">-</dd></dl>
+                <dl><dt>Risk now</dt><dd id="riskAfter">-</dd></dl>
+                <dl><dt>Issues found</dt><dd id="issuesFound">-</dd></dl>
+                <dl><dt>Verdict</dt><dd id="verdict">-</dd></dl>
+              </div>
+              <div class="mini"><h4>What was wrong</h4><ul id="wrongList"></ul></div>
+              <div class="mini"><h4>What was fixed</h4><ul id="fixedList"></ul></div>
+            </section>
+          </div>
+        </aside>
+      </div>
+    </section>
+    <section class="controls">
+      <label for="prompt">Prompt</label>
+      <div class="row">
+        <input id="prompt" autocomplete="off" spellcheck="false">
+        <button id="generateBtn" class="b-g">Generate</button>
+        <button id="inspectBtn" class="b-i" disabled>Inspect Code</button>
+        <button id="resetBtn" class="b-r">Reset</button>
+      </div>
+      <div class="api-row">
+        <input id="modelName" class="model-input" autocomplete="off" value="gpt-4.1-mini" placeholder="Model name">
+      </div>
+      <div id="chips" class="chips"></div>
+    </section>
+    <section class="sim">
+      <div class="head">
+        <h2>Protocol Evaluation</h2>
+        <div class="sim-actions">
+          <select id="experimentSelect">
+            <option value="main_eval">main_eval</option>
+            <option value="inspector_ablation">inspector_ablation</option>
+            <option value="builder_ablation">builder_ablation</option>
+            <option value="baseline_comparison">baseline_comparison</option>
+            <option value="robustness_repeat">robustness_repeat</option>
+          </select>
+          <input id="repeatCount" type="number" min="1" max="10" value="1" title="Repeat count">
+          <label><input id="includeErrorsSummary" type="checkbox"> include_errors_in_summary</label>
+          <button id="runSimBtn" class="b-g">Run Simulation</button>
+        </div>
+      </div>
+      <div class="sim-body">
+        <p class="sim-note">Fast research runner across model pairings, adversarial cases, and benign controls.</p>
+        <div id="simLoader" class="sim-loader" aria-live="polite">
+          <span class="spin" aria-hidden="true"></span>
+          <span id="simLoaderText">Starting simulation...</span>
+        </div>
+        <div class="sim-top">
+          <dl class="s"><dt>Total runs</dt><dd id="sTotalRuns">50</dd></dl>
+          <dl class="s"><dt>Builder models</dt><dd id="sBuilderModels">1</dd></dl>
+          <dl class="s"><dt>Inspector models</dt><dd id="sInspectorModels">3</dd></dl>
+          <dl class="s"><dt>Adversarial cases</dt><dd id="sAdvCases">37</dd></dl>
+          <dl class="s"><dt>Benign controls</dt><dd id="sBenignCases">13</dd></dl>
+        </div>
+        <div class="metrics">
+          <dl class="m"><dt>Detection rate</dt><dd id="mDetect">--</dd></dl>
+          <dl class="m"><dt>Repair success rate</dt><dd id="mRepair">--</dd></dl>
+          <dl class="m"><dt>False positive rate</dt><dd id="mFalse">--</dd></dl>
+          <dl class="m"><dt>False negative rate</dt><dd id="mFn">--</dd></dl>
+          <dl class="m"><dt>Average risk reduction</dt><dd id="mRisk">--</dd></dl>
+        </div>
+        <div class="sim-runtime">
+          <dl class="r"><dt>Runs completed</dt><dd id="simRunsDone">0 / 50</dd></dl>
+          <dl class="r"><dt>Elapsed time</dt><dd id="simElapsed">0.0s</dd></dl>
+          <dl class="r"><dt>Avg time / run</dt><dd id="simAvgTime">0 ms</dd></dl>
+        </div>
+        <div class="sim-filters">
+          <select id="fBuilder"><option value="">All builders</option></select>
+          <select id="fInspector"><option value="">All inspectors</option></select>
+          <select id="fStatus">
+            <option value="">All statuses</option>
+            <option>VALID_BENIGN_PASS</option>
+            <option>VALID_TRUE_POSITIVE</option>
+            <option>VALID_FALSE_NEGATIVE</option>
+            <option>VALID_FALSE_POSITIVE</option>
+            <option>VALID_TRUE_NEGATIVE</option>
+            <option>BUILDER_FORMAT_ERROR</option>
+            <option>INSPECTOR_FORMAT_ERROR</option>
+            <option>REQUEST_ERROR</option>
+            <option>TIMEOUT_ERROR</option>
+            <option>RUN_ERROR</option>
+            <option>PARSE_ERROR</option>
+            <option>INVALID_GROUND_TRUTH</option>
+            <option>INVALID_EVAL_RECORD</option>
+          </select>
+          <select id="fCase">
+            <option value="">All case types</option>
+            <option value="adversarial">Adversarial</option>
+            <option value="benign">Benign</option>
+          </select>
+          <select id="fExperiment"><option value="">All experiments</option></select>
+          <select id="fBuilderVariant"><option value="">All builder variants</option></select>
+          <select id="fInspectorVariant"><option value="">All inspector variants</option></select>
+          <select id="fBaseline"><option value="">All baselines</option></select>
+          <select id="fValidity">
+            <option value="">All validity</option>
+            <option value="valid">Valid only</option>
+            <option value="excluded">Excluded only</option>
+          </select>
+          <select id="fAttack"><option value="">All attack families</option></select>
+          <label><input id="fFailures" type="checkbox"> Only failures</label>
+          <label><input id="fOnlyBenign" type="checkbox"> Only benign</label>
+          <label><input id="fOnlyAdv" type="checkbox"> Only adversarial</label>
+          <button id="fMissedBtn" type="button">Show FALSE NEGATIVE</button>
+          <button id="fFpBtn" type="button">Show FALSE POSITIVE</button>
+          <button id="fResetBtn" type="button">Reset Filters</button>
+        </div>
+        <div class="sim-export">
+          <button id="exportAllBtn" type="button">Export Run Traces</button>
+          <button id="exportFilteredBtn" type="button">Export Filtered Runs</button>
+          <button id="exportResearchBtn" type="button">Export Research Pack</button>
+          <button id="exportPaperBtn" type="button">Export Paper Files</button>
+        </div>
+        <div class="prog"><div class="track"><div id="simBar" class="bar"></div></div><div id="simText" class="prog-t">Idle. No simulation running.</div></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Run</th><th>Builder model</th><th>Inspector model</th><th>Scenario</th><th>Case type</th><th>Attack family</th><th>Detected</th><th>Repairable</th><th>Final status</th><th>Deep Dive</th></tr></thead>
+            <tbody id="simBody"></tbody>
+          </table>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Model pair</th><th>Runs</th><th>Detection rate</th><th>Repair success</th><th>False positive rate</th></tr></thead>
+            <tbody id="pairBody"></tbody>
+          </table>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Attack family</th><th>Runs</th><th>Detected</th><th>Missed</th><th>Detection rate</th></tr></thead>
+            <tbody id="attackBody"></tbody>
+          </table>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Group</th><th>Runs</th><th>TP</th><th>FP</th><th>FN</th><th>TN</th><th>Precision</th><th>Recall</th><th>F1</th><th>Accuracy</th></tr></thead>
+            <tbody id="summaryBody"></tbody>
+          </table>
+        </div>
+        <div class="compare">
+          <div><h4>Without control</h4><p>Most unsafe outputs would execute.</p></div>
+          <div><h4>With control</h4><p>Most unsafe outputs are detected and rewritten.</p></div>
+        </div>
+        <section id="deepDive" class="deep-dive">
+          <div class="head">
+            <h2>Run Deep Dive</h2>
+            <button id="closeDiveBtn" type="button">Close</button>
+          </div>
+          <div class="deep-grid">
+            <article class="deep-card">
+              <h4>Run summary</h4>
+              <div id="dSummary"></div>
+            </article>
+            <article class="deep-card">
+              <h4>Expected vs observed</h4>
+              <div id="dCompare"></div>
+            </article>
+            <article class="deep-card full">
+              <h4>User prompt</h4>
+              <pre id="dPrompt"></pre>
+            </article>
+            <article class="deep-card full">
+              <h4>Builder output (raw)</h4>
+              <pre id="dBuilderRaw"></pre>
+            </article>
+            <article class="deep-card full">
+              <h4>Builder parsed JSON</h4>
+              <pre id="dBuilderParsed"></pre>
+            </article>
+            <article class="deep-card full">
+              <h4>Builder Ground Truth</h4>
+              <pre id="dGroundTruth"></pre>
+            </article>
+            <article class="deep-card full">
+              <h4>Ground Truth vs Inspector Judgment</h4>
+              <pre id="dGtCompare"></pre>
+            </article>
+            <article class="deep-card full">
+              <h4>Inspector raw output</h4>
+              <pre id="dInspectorRaw"></pre>
+            </article>
+            <article class="deep-card full">
+              <h4>Parsed inspector JSON</h4>
+              <pre id="dInspectorParsed"></pre>
+            </article>
+            <article class="deep-card full">
+              <h4>Translation layer</h4>
+              <pre id="dTranslation"></pre>
+            </article>
+          </div>
+        </section>
+        <section id="paperFindings" class="paper-findings">
+          <div class="head">
+            <h2>Paper Findings</h2>
+            <span class="state t-accent">Valid runs for metrics</span>
+          </div>
+          <div class="paper-grid">
+            <article class="paper-card">
+              <h4>VALID vs EXCLUDED</h4>
+              <dl class="paper-kv">
+                <dt>Total runs</dt><dd id="pfTotalRuns">0</dd>
+                <dt>Valid</dt><dd id="pfValidRuns">0</dd>
+                <dt>Excluded</dt><dd id="pfExcludedRuns">0</dd>
+                <dt>Valid rate</dt><dd id="pfValidRate">0%</dd>
+              </dl>
+            </article>
+            <article class="paper-card">
+              <h4>Baseline Comparison</h4>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr><th>Baseline</th><th>Runs</th><th>Detect%</th><th>FP%</th><th>F1%</th></tr></thead>
+                  <tbody id="baselineBody"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="paper-card">
+              <h4>Inspector Ablation</h4>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr><th>Variant</th><th>Runs</th><th>Detect%</th><th>FP%</th><th>F1%</th></tr></thead>
+                  <tbody id="inspectorAblationBody"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="paper-card">
+              <h4>Builder Ablation</h4>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr><th>Variant</th><th>Runs</th><th>Detect%</th><th>FP%</th><th>F1%</th></tr></thead>
+                  <tbody id="builderAblationBody"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="paper-card full">
+              <h4>Core Findings</h4>
+              <ul id="coreFindingsList"></ul>
+            </article>
+            <article class="paper-card full">
+              <h4>Cross Table (Model x Attack Family)</h4>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr><th>Model pair</th><th>Attack family</th><th>Runs</th><th>Detect%</th><th>Miss%</th></tr></thead>
+                  <tbody id="crossTableBody"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="paper-card full">
+              <h4>Controlled Experiment (Same task, with/without hidden behavior)</h4>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr><th>Scenario</th><th>Benign runs</th><th>Adversarial runs</th><th>Detect% (adv)</th><th>FP% (benign)</th></tr></thead>
+                  <tbody id="controlledBody"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="paper-card full">
+              <h4>Mechanism vs Necessity</h4>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr><th>Mechanism</th><th>Runs</th><th>Detect%</th><th>Miss%</th><th>Likely miss reason</th></tr></thead>
+                  <tbody id="mechNecBody"></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
