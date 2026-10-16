@@ -1,6 +1,15 @@
 # ControlCanvas
 
-ControlCanvas is a local research harness for evaluating AI-generated frontend code with a safety-inspection protocol.
+ControlCanvas is a local research harness for inspecting AI-generated frontend
+code and comparing builder/inspector decisions. Start with its offline fixture
+demo, then inspect the saved code, labels, and raw responses before drawing
+conclusions from a model-backed experiment.
+
+**Ground truth is model-reported intent, not an independently verified oracle.**
+The harness now rejects missing or contradictory labels and malformed inspector
+responses instead of inferring a correct answer. These format checks do not
+prove what the generated code actually does. See
+[Methodology and limits](docs/METHODOLOGY.md).
 
 It runs:
 - an untrusted builder model that generates HTML/CSS/JS,
@@ -47,8 +56,9 @@ Total cap: **50 runs**.
 
 ## Requirements
 
-- Python 3.9+ (tested with Python 3.13)
-- OpenAI API key
+- Python 3.12
+- Node.js 22+ for the JavaScript regression tests
+- OpenAI API key only for optional model-backed runs
 - Modern browser (Chrome/Edge/Firefox)
 
 No external Python dependencies are required (stdlib-only server).
@@ -64,11 +74,18 @@ Windows PowerShell alternative:
 Copy-Item .env.example .env
 ```
 
-2. Set your key in `.env`:
+2. Start with the checked-in fixture setting in `.env`:
 ```env
-OPENAI_API_KEY=sk-...
-USE_FAKE_DATA=false
+USE_FAKE_DATA=true
+OPENAI_API_KEY=
 ```
+
+Fixture mode makes no model API calls and returns predefined responses. Its
+scores are demonstrations of the pipeline, not model detection results.
+The UI displays the current execution mode. To run real models later, set
+`USE_FAKE_DATA=false` and provide your own key. Those requests send the prompt
+and generated code to OpenAI and may incur API costs. The configured model
+names are experiment settings; availability depends on your account.
 
 3. Start server:
 ```bash
@@ -91,6 +108,19 @@ start_server.bat
 2. Run `Inspect Code` to evaluate and sanitize output.
 3. Use `Protocol Evaluation` to run full experiments.
 4. Open `Deep Dive` for any run to inspect traces.
+
+## Verification
+
+```bash
+python -m unittest discover -s tests -v
+node --test tests/evaluation.test.cjs
+```
+
+The offline checks cover the local API, fixture mode without model calls,
+input rejection, private static files, malformed model responses, inconsistent
+labels, invalid-run exclusion, and confusion counts. GitHub Actions runs these
+checks on each push and pull request. They validate the harness, not model
+quality or semantic correctness of model-generated labels.
 
 ## Experiments
 
@@ -140,7 +170,10 @@ Excluded statuses:
 - `INVALID_GROUND_TRUTH`
 - `INVALID_EVAL_RECORD`
 
-By default, official metrics are computed on `VALID_*` runs.
+Metrics use eligible `VALID_*` runs. Missing or invalid outputs are excluded,
+never replaced with the planned answer. Rates remain conditional on the
+reliability of the model-reported label; independent code/behaviour review is
+still required before treating them as research evidence.
 
 ## Exports
 
