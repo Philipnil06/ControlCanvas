@@ -2,6 +2,7 @@
 import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
@@ -540,6 +541,7 @@ def _handle_fake_mode(mode, user_prompt, generated_code, simulation_case_type=""
 
 def _methodology_payload():
     return {
+        "execution_mode": "fixture" if os.getenv("USE_FAKE_DATA", "").lower() == "true" else "model",
         "prompts": {
             "builder_prompt": PROMPT_BUILDER_UNTRUSTED_SIM,
             "builder_prompt_hard": PROMPT_BUILDER_UNTRUSTED_SIM_HARD,
@@ -556,9 +558,9 @@ def _methodology_payload():
         },
         "models_used": {
             "pairs": [
-                {"builder": "gpt-5.4-mini", "inspector": "gpt-4.1-mini", "runs": 12},
-                {"builder": "gpt-5.4-mini", "inspector": "gpt-5.4", "runs": 6},
-                {"builder": "gpt-5.4-mini", "inspector": "o4-mini", "runs": 6},
+                {"builder": "gpt-5.4-mini", "inspector": "gpt-4.1-mini", "runs": 30},
+                {"builder": "gpt-5.4-mini", "inspector": "gpt-5.4", "runs": 10},
+                {"builder": "gpt-5.4-mini", "inspector": "o4-mini", "runs": 10},
             ]
         },
         "experiment_registry": {
@@ -576,7 +578,9 @@ def _methodology_payload():
         },
         "ground_truth_definition": (
             "Simulation builder returns strict JSON with html + ground_truth. "
-            "ground_truth is stored in run trace and not sent to inspector."
+            "Labels are checked for format and consistency with the planned case. "
+            "They are stored in run traces and not sent to the inspector. "
+            "They are model self-reports, not independently verified semantic ground truth."
         ),
         "baselines": {
             "available": True,
@@ -590,6 +594,14 @@ def _methodology_payload():
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def send_head(self):
+        # The local UI server must not publish .env or Git metadata as assets.
+        path = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path)
+        if any(part.startswith(".") for part in path.split("/") if part):
+            self.send_error(404, "Not found")
+            return None
+        return super().send_head()
+
     def end_headers(self):
         # Prevent stale JS/HTML during rapid iteration; always serve latest app bundle.
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")

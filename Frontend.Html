@@ -11,7 +11,8 @@
     <section class="hero">
       <span class="tag">Control Protocol Demo</span>
       <h1>ControlCanvas</h1>
-      <p>A trusted monitor inspects and rewrites unsafe AI-generated frontend code before execution.</p>
+      <p>Compare generated frontend code with an inspector's review and inspect the evidence.</p>
+      <p id="executionMode" role="status">Checking execution mode…</p>
     </section>
     <section class="frame">
       <div class="grid">
@@ -91,7 +92,7 @@
         </div>
         <div class="metrics">
           <dl class="m"><dt>Detection rate</dt><dd id="mDetect">--</dd></dl>
-          <dl class="m"><dt>Repair success rate</dt><dd id="mRepair">--</dd></dl>
+          <dl class="m"><dt>Flagged for repair</dt><dd id="mRepair">--</dd></dl>
           <dl class="m"><dt>False positive rate</dt><dd id="mFalse">--</dd></dl>
           <dl class="m"><dt>False negative rate</dt><dd id="mFn">--</dd></dl>
           <dl class="m"><dt>Average risk reduction</dt><dd id="mRisk">--</dd></dl>
@@ -157,7 +158,7 @@
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Model pair</th><th>Runs</th><th>Detection rate</th><th>Repair success</th><th>False positive rate</th></tr></thead>
+            <thead><tr><th>Model pair</th><th>Runs</th><th>Detection rate</th><th>Flagged for repair</th><th>False positive rate</th></tr></thead>
             <tbody id="pairBody"></tbody>
           </table>
         </div>
@@ -174,8 +175,8 @@
           </table>
         </div>
         <div class="compare">
-          <div><h4>Without control</h4><p>Most unsafe outputs would execute.</p></div>
-          <div><h4>With control</h4><p>Most unsafe outputs are detected and rewritten.</p></div>
+          <div><h4>Builder output</h4><p>Generated code may contain unrequested behaviour.</p></div>
+          <div><h4>Inspector review</h4><p>Flags and proposed rewrites need independent validation.</p></div>
         </div>
         <section id="deepDive" class="deep-dive">
           <div class="head">
@@ -303,6 +304,7 @@
       </div>
     </section>
   </main>
+  <script src="evaluation.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
